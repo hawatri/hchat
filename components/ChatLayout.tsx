@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { useUser } from '@clerk/nextjs'
-import { Send, UserPlus, Users, Search, MoreVertical, MessageCircle } from 'lucide-react'
+import { Send, UserPlus, Users, Search, MoreVertical, MessageCircle, Menu, X } from 'lucide-react'
 import { api } from '@/convex/_generated/api'
 
 export default function ChatLayout() {
@@ -11,6 +11,7 @@ export default function ChatLayout() {
   const [message, setMessage] = useState('')
   const [addEmail, setAddEmail] = useState('')
   const [showAddContact, setShowAddContact] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Ensure current user exists in DB
@@ -63,9 +64,22 @@ export default function ChatLayout() {
 
   return (
     <div className="flex h-[calc(100vh-81px)] bg-gray-50">
+      {/* Mobile overlay */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 sm:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
       {/* Contacts Sidebar */}
-      <div className="w-full sm:w-80 lg:w-96 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-4 sm:p-6 border-b border-gray-100">
+      <div
+        className={
+          `fixed inset-y-0 left-0 z-50 w-80 transform bg-white border-r border-gray-200 flex flex-col transition-transform duration-200 sm:static sm:z-auto sm:w-80 lg:w-96 sm:translate-x-0 ${
+            isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          }`
+        }
+      >
+        <div className="p-4 sm:p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <Users className="w-5 h-5 text-gray-600" />
@@ -76,6 +90,13 @@ export default function ChatLayout() {
               className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
             >
               <UserPlus className="w-5 h-5" />
+            </button>
+            <button
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200 sm:hidden"
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-label="Close contacts"
+            >
+              <X className="w-5 h-5" />
             </button>
           </div>
           
@@ -105,7 +126,7 @@ export default function ChatLayout() {
             {contacts?.map(c => (
               <button
                 key={`${c.ownerId}-${c.contactId}`}
-                onClick={() => setSelectedId(c.contactId)}
+                onClick={() => { setSelectedId(c.contactId); setIsMobileMenuOpen(false) }}
                 className={`w-full p-3 rounded-xl text-left transition-all duration-200 group ${
                   selectedId === c.contactId 
                     ? 'bg-blue-50 border-2 border-blue-200' 
@@ -148,7 +169,7 @@ export default function ChatLayout() {
       </div>
 
       {/* Chat Window */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col relative">
         {selectedId ? (
           <>
             {/* Chat Header */}
@@ -267,6 +288,15 @@ export default function ChatLayout() {
             </div>
           </div>
         )}
+
+        {/* Mobile FAB for contacts */}
+        <button
+          className="sm:hidden fixed bottom-30 left-4 z-30 inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 active:scale-95 transition"
+          onClick={() => setIsMobileMenuOpen(true)}
+          aria-label="Open contacts"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
       </div>
     </div>
   )
