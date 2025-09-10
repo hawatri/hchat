@@ -14,6 +14,7 @@ export default defineSchema({
   users: defineTable({
     clerkUserId: v.string(),
     email: v.optional(v.string()),
+    username: v.optional(v.string()),
     name: v.string(),
     lastSeen: v.number(),
   }).index('by_clerkUserId', ['clerkUserId']),

@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
-import { Send, UserPlus, Users, Search, MoreVertical } from 'lucide-react'
+import { useUser } from '@clerk/nextjs'
+import { Send, UserPlus, Users, Search, MoreVertical, MessageCircle } from 'lucide-react'
 import { api } from '@/convex/_generated/api'
 
 export default function ChatLayout() {
@@ -14,11 +15,14 @@ export default function ChatLayout() {
 
   // Ensure current user exists in DB
   const upsert = useMutation(api.users.upsertCurrentUser)
+  const { user } = useUser()
   useEffect(() => {
-    upsert({}).catch(() => {})
-  }, [upsert])
+    const displayName = user?.fullName || user?.firstName || undefined
+    const username = user?.username || undefined
+    upsert({ name: displayName, username }).catch(() => {})
+  }, [upsert, user?.username, user?.fullName, user?.firstName])
 
-  const contacts = useQuery(api.contacts.listContacts, {})
+  const contacts = useQuery(api.contacts.listContactsWithProfiles, {})
   const messages = useQuery(
     api.messages.getMessages,
     selectedId ? { otherUserId: selectedId } : 'skip'
@@ -26,6 +30,7 @@ export default function ChatLayout() {
 
   const addContact = useMutation(api.contacts.addContactByEmail)
   const sendMessage = useMutation(api.messages.sendMessage)
+  const deleteContact = useMutation(api.contacts.deleteContact)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -113,15 +118,15 @@ export default function ChatLayout() {
                       ? 'bg-blue-600 text-white' 
                       : 'bg-gray-200 text-gray-700 group-hover:bg-gray-300'
                   }`}>
-                    {c.contactId.charAt(0).toUpperCase()}
+                    {(c.name ?? c.contactId).charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={`font-medium truncate ${
                       selectedId === c.contactId ? 'text-blue-900' : 'text-gray-900'
                     }`}>
-                      {c.contactId}
+                      {c.name ?? c.contactId}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">Online</p>
+                    <p className="text-xs text-gray-500 truncate">{c.email ?? 'Online'}</p>
                   </div>
                 </div>
               </button>
@@ -154,13 +159,31 @@ export default function ChatLayout() {
                     {selectedId.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">{selectedId}</h3>
+                    <h3 className="font-semibold text-gray-900">{contacts?.find(c => c.contactId === selectedId)?.name ?? selectedId}</h3>
                     <p className="text-sm text-green-500">Online</p>
                   </div>
                 </div>
-                <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200">
-                  <MoreVertical className="w-5 h-5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={async () => {
+                      if (!selectedId) return
+                      const ok = confirm('Delete this contact and all chats?')
+                      if (!ok) return
+                      try {
+                        await deleteContact({ contactId: selectedId })
+                        setSelectedId(null)
+                      } catch (e) {
+                        alert((e as Error).message)
+                      }
+                    }}
+                    className="px-3 py-2 text-sm font-medium text-red-600 hover:text-white hover:bg-red-600 border border-red-200 rounded-lg transition-colors duration-200"
+                  >
+                    Delete
+                  </button>
+                  <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                    <MoreVertical className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
             </div>
 
