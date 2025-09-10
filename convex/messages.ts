@@ -32,6 +32,24 @@ export const sendMessage = mutation({
       receiverId,
       timestamp: Date.now(),
     })
+
+    // Auto-create reciprocal contact so the recipient sees the thread
+    const reverse = await ctx.db
+      .query('contacts')
+      .filter(q =>
+        q.and(
+          q.eq(q.field('ownerId'), receiverId),
+          q.eq(q.field('contactId'), senderId)
+        )
+      )
+      .first()
+    if (!reverse) {
+      await ctx.db.insert('contacts', {
+        ownerId: receiverId,
+        contactId: senderId,
+        createdAt: Date.now(),
+      })
+    }
   },
 })
 
