@@ -259,7 +259,7 @@ export default function ChatLayout() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gray-50">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gray-50 pb-28 sm:pb-0">
               {Array.isArray(messages) && messages.map((m, index) => {
                 const isMe = m.senderId !== selectedId
                 const showTime = index === 0 || messages[index - 1].timestamp < m.timestamp - 300000 // 5 minutes
@@ -325,8 +325,16 @@ export default function ChatLayout() {
             </div>
 
             {/* Message Input */}
-            <div className="bg-white border-t border-gray-200 p-4 sm:p-6">
-              <div className="flex items-end space-x-3">
+            <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 p-3 sm:relative sm:p-6 sm:z-auto">
+              <div className="mx-auto max-w-3xl flex items-end gap-2">
+                {/* Mobile hamburger inside input bar */}
+                <button
+                  className="sm:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  aria-label="Open contacts"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
                 <div className="flex-1">
                   <textarea
                     value={message}
@@ -375,15 +383,6 @@ export default function ChatLayout() {
             </div>
           </div>
         )}
-
-        {/* Mobile FAB for contacts */}
-        <button
-          className="sm:hidden fixed bottom-30 left-4 z-30 inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 active:scale-95 transition"
-          onClick={() => setIsMobileMenuOpen(true)}
-          aria-label="Open contacts"
-        >
-          <Menu className="w-6 h-6" />
-        </button>
       </div>
     </div>
   )
