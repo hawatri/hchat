@@ -32,6 +32,11 @@ export default function ChatLayout() {
   const addContact = useMutation(api.contacts.addContactByEmail)
   const sendMessage = useMutation(api.messages.sendMessage)
   const deleteContact = useMutation(api.contacts.deleteContact)
+  const deleteMessage = useMutation(api.messages.deleteMessage)
+  const clearConversation = useMutation(api.messages.clearConversation)
+  const [visibleDeleteForId, setVisibleDeleteForId] = useState<string | null>(null)
+  const hideDeleteTimerRef = useRef<number | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -44,7 +49,15 @@ export default function ChatLayout() {
   const onAdd = async () => {
     if (!addEmail) return
     try {
-      await addContact({ email: addEmail })
+      const res = await addContact({ email: addEmail })
+      if (res?.ok === false && res.code === 'NOT_FOUND') {
+        alert('User not found')
+        return
+      }
+      if (res?.ok === false && res.code === 'SELF') {
+        alert("You can't add yourself")
+        return
+      }
       setAddEmail('')
       setShowAddContact(false)
     } catch (e) {
@@ -63,7 +76,7 @@ export default function ChatLayout() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-81px)] bg-gray-50">
+    <div className="flex h-[calc(100dvh-81px)] overscroll-contain bg-gray-50">
       {/* Mobile overlay */}
       {isMobileMenuOpen && (
         <div
@@ -134,13 +147,23 @@ export default function ChatLayout() {
                 }`}
               >
                 <div className="flex items-center space-x-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${
-                    selectedId === c.contactId 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-gray-200 text-gray-700 group-hover:bg-gray-300'
-                  }`}>
-                    {(c.name ?? c.contactId).charAt(0).toUpperCase()}
-                  </div>
+                  {c.avatarUrl ? (
+                    <img
+                      src={c.avatarUrl}
+                      alt={c.name ?? 'Avatar'}
+                      className={`w-10 h-10 rounded-full object-cover border ${
+                        selectedId === c.contactId ? 'border-blue-300' : 'border-gray-200'
+                      }`}
+                    />
+                  ) : (
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold ${
+                      selectedId === c.contactId 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-gray-200 text-gray-700 group-hover:bg-gray-300'
+                    }`}>
+                      {(c.name ?? c.contactId).charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className={`font-medium truncate ${
                       selectedId === c.contactId ? 'text-blue-900' : 'text-gray-900'
@@ -184,32 +207,59 @@ export default function ChatLayout() {
                     <p className="text-sm text-green-500">Online</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="relative flex items-center gap-2">
                   <button
-                    onClick={async () => {
-                      if (!selectedId) return
-                      const ok = confirm('Delete this contact and all chats?')
-                      if (!ok) return
-                      try {
-                        await deleteContact({ contactId: selectedId })
-                        setSelectedId(null)
-                      } catch (e) {
-                        alert((e as Error).message)
-                      }
-                    }}
-                    className="px-3 py-2 text-sm font-medium text-red-600 hover:text-white hover:bg-red-600 border border-red-200 rounded-lg transition-colors duration-200"
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                    onClick={() => setMenuOpen(v => !v)}
+                    aria-haspopup="menu"
+                    aria-expanded={menuOpen}
                   >
-                    Delete
-                  </button>
-                  <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors duration-200">
                     <MoreVertical className="w-5 h-5" />
                   </button>
+                  {menuOpen && (
+                    <div className="absolute right-0 top-10 z-20 w-44 rounded-lg border border-gray-200 bg-white shadow-md">
+                      <button
+                        onClick={async () => {
+                          setMenuOpen(false)
+                          if (!selectedId) return
+                          const ok = confirm('Clear this chat for you? Messages remain for the other user.')
+                          if (!ok) return
+                          try {
+                            await clearConversation({ otherUserId: selectedId })
+                          } catch (e) {
+                            alert((e as Error).message)
+                          }
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50"
+                      >
+                        Clear chat (for you)
+                      </button>
+                      <div className="h-px bg-gray-100" />
+                      <button
+                        onClick={async () => {
+                          setMenuOpen(false)
+                          if (!selectedId) return
+                          const ok = confirm('Delete this contact and all chats between you? This removes contact entries for you only.')
+                          if (!ok) return
+                          try {
+                            await deleteContact({ contactId: selectedId })
+                            setSelectedId(null)
+                          } catch (e) {
+                            alert((e as Error).message)
+                          }
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                      >
+                        Delete contact
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gray-50">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gray-50">
               {Array.isArray(messages) && messages.map((m, index) => {
                 const isMe = m.senderId !== selectedId
                 const showTime = index === 0 || messages[index - 1].timestamp < m.timestamp - 300000 // 5 minutes
@@ -224,13 +274,43 @@ export default function ChatLayout() {
                       </div>
                     )}
                     <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[70%] sm:max-w-md px-4 py-3 rounded-2xl shadow-sm ${
+                      <div
+                        className={`relative group max-w-[70%] sm:max-w-md px-4 py-3 rounded-2xl shadow-sm ${
                         isMe 
                           ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-md' 
                           : 'bg-white text-gray-900 rounded-bl-md border border-gray-200'
-                      }`}>
+                      }`}
+                        onClick={() => {
+                          if (!isMe) return
+                          setVisibleDeleteForId(prev => (prev === m._id ? null : m._id))
+                          if (hideDeleteTimerRef.current) {
+                            window.clearTimeout(hideDeleteTimerRef.current)
+                          }
+                          hideDeleteTimerRef.current = window.setTimeout(() => {
+                            setVisibleDeleteForId(null)
+                            hideDeleteTimerRef.current = null
+                          }, 3000)
+                        }}
+                      >
                         <p className="text-[10px] mb-1 opacity-80">{isMe ? 'You' : (m.senderName ?? '')}</p>
                         <p className="text-sm leading-relaxed">{m.content}</p>
+                        {isMe && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await deleteMessage({ messageId: m._id })
+                              } catch (e) {
+                                alert((e as Error).message)
+                              }
+                            }}
+                            className={`absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center shadow hover:bg-red-700 transition ${
+                              visibleDeleteForId === m._id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                            }`}
+                            aria-label="Delete message"
+                          >
+                            ×
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -256,6 +336,12 @@ export default function ChatLayout() {
                         e.preventDefault()
                         onSend()
                       }
+                    }}
+                    onFocus={() => {
+                      // Ensure the input area stays visible when the keyboard opens on mobile
+                      setTimeout(() => {
+                        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+                      }, 50)
                     }}
                     placeholder="Type a message..."
                     rows={1}

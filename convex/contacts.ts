@@ -59,8 +59,12 @@ export const addContactByEmail = mutation({
       .query('users')
       .filter(q => q.eq(q.field('email'), email))
       .first()
-    if (!user) throw new Error('No user exists with that email')
-    if (user.clerkUserId === ownerId) throw new Error('Cannot add yourself')
+    if (!user) {
+      return { ok: false as const, code: 'NOT_FOUND' as const }
+    }
+    if (user.clerkUserId === ownerId) {
+      return { ok: false as const, code: 'SELF' as const }
+    }
 
     const existing = await ctx.db
       .query('contacts')
@@ -71,13 +75,14 @@ export const addContactByEmail = mutation({
         )
       )
       .first()
-    if (existing) return existing._id
+    if (existing) return { ok: true as const, code: 'EXISTS' as const }
 
-    return await ctx.db.insert('contacts', {
+    await ctx.db.insert('contacts', {
       ownerId,
       contactId: user.clerkUserId,
       createdAt: Date.now(),
     })
+    return { ok: true as const, code: 'CREATED' as const }
   },
 })
 
@@ -105,6 +110,7 @@ export const listContactsWithProfiles = query({
           createdAt: c.createdAt,
           name: user?.username ?? user?.name ?? c.contactId,
           email: user?.email ?? null,
+          avatarUrl: user?.avatarUrl ?? null,
         }
       })
     )

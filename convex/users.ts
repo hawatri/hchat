@@ -8,6 +8,7 @@ export const upsertCurrentUser = mutation({
     if (!identity) throw new Error('Not authenticated')
     const clerkUserId = identity.subject
     const email = identity.email
+    const avatarUrl = (identity as any).profileUrl ?? (identity as any).pictureUrl ?? undefined
     const emailLocalPart = email ? email.split('@')[0] : undefined
     const derivedName = args.name ?? identity.name ?? identity.givenName ?? identity.familyName ?? emailLocalPart ?? 'Anonymous'
     const name = derivedName
@@ -19,7 +20,7 @@ export const upsertCurrentUser = mutation({
       .filter(q => q.eq(q.field('clerkUserId'), clerkUserId))
       .first()
     if (existing) {
-      await ctx.db.patch(existing._id, { name, username, email, lastSeen: Date.now() })
+      await ctx.db.patch(existing._id, { name, username, email, avatarUrl, lastSeen: Date.now() })
       return existing._id
     }
     return await ctx.db.insert('users', {
@@ -27,6 +28,7 @@ export const upsertCurrentUser = mutation({
       email,
       username,
       name,
+      avatarUrl,
       lastSeen: Date.now(),
     })
   },

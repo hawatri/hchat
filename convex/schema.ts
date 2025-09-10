@@ -16,6 +16,7 @@ export default defineSchema({
     email: v.optional(v.string()),
     username: v.optional(v.string()),
     name: v.string(),
+    avatarUrl: v.optional(v.string()),
     lastSeen: v.number(),
   }).index('by_clerkUserId', ['clerkUserId']),
 
@@ -26,4 +27,11 @@ export default defineSchema({
   })
     .index('by_owner', ['ownerId'])
     .index('by_owner_contact', ['ownerId', 'contactId']),
+
+  clears: defineTable({
+    ownerId: v.string(),
+    otherUserId: v.string(),
+    clearedAt: v.number(),
+  })
+    .index('by_owner_other', ['ownerId', 'otherUserId']),
 })

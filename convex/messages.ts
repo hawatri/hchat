@@ -91,6 +91,16 @@ export const getMessagesWithProfiles = query({
     if (!identity) throw new Error('Not authenticated')
     const me = identity.subject
 
+    // Check per-user clear state
+    const clear = await ctx.db
+      .query('clears')
+      .filter(q => q.and(
+        q.eq(q.field('ownerId'), me),
+        q.eq(q.field('otherUserId'), otherUserId)
+      ))
+      .first()
+    const clearedAt = clear?.clearedAt ?? 0
+
     const msgs = await ctx.db
       .query('messages')
       .filter(q =>
@@ -99,6 +109,7 @@ export const getMessagesWithProfiles = query({
           q.and(q.eq(q.field('senderId'), otherUserId), q.eq(q.field('receiverId'), me))
         )
       )
+      .filter(q => q.gt(q.field('timestamp'), clearedAt))
       .collect()
 
     // Fetch both user profiles
@@ -122,5 +133,43 @@ export const getMessagesWithProfiles = query({
       senderName: senderNameFor(m.senderId),
       receiverName: senderNameFor(m.receiverId),
     }))
+  },
+})
+
+export const deleteMessage = mutation({
+  args: { messageId: v.id('messages') },
+  handler: async (ctx, { messageId }) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    // Only allow sender to delete their message
+    const msg = await ctx.db.get(messageId)
+    if (!msg) return
+    if (msg.senderId !== identity.subject) throw new Error('Not authorized')
+    await ctx.db.delete(messageId)
+  },
+})
+
+export const clearConversation = mutation({
+  args: { otherUserId: v.string() },
+  handler: async (ctx, { otherUserId }) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const ownerId = identity.subject
+    const existing = await ctx.db
+      .query('clears')
+      .filter(q => q.and(
+        q.eq(q.field('ownerId'), ownerId),
+        q.eq(q.field('otherUserId'), otherUserId)
+      ))
+      .first()
+    if (existing) {
+      await ctx.db.patch(existing._id, { clearedAt: Date.now() })
+      return existing._id
+    }
+    return await ctx.db.insert('clears', {
+      ownerId,
+      otherUserId,
+      clearedAt: Date.now(),
+    })
   },
 })
