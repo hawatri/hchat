@@ -37,6 +37,21 @@ export default function ChatLayout() {
   const [visibleDeleteForId, setVisibleDeleteForId] = useState<string | null>(null)
   const hideDeleteTimerRef = useRef<number | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  // Restore last selected chat or pick first contact
+  useEffect(() => {
+    if (selectedId) return
+    if (!Array.isArray(contacts) || contacts.length === 0) return
+    const saved = typeof window !== 'undefined' ? window.localStorage.getItem('lastChatId') : null
+    const candidate = contacts.find(c => c.contactId === saved)?.contactId || contacts[0].contactId
+    setSelectedId(candidate)
+  }, [contacts, selectedId])
+
+  // Persist selection
+  useEffect(() => {
+    if (!selectedId) return
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem('lastChatId', selectedId)
+  }, [selectedId])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -327,14 +342,6 @@ export default function ChatLayout() {
             {/* Message Input */}
             <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 p-3 sm:relative sm:p-6 sm:z-auto">
               <div className="mx-auto max-w-3xl flex items-end gap-2">
-                {/* Mobile hamburger inside input bar */}
-                <button
-                  className="sm:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                  onClick={() => setIsMobileMenuOpen(true)}
-                  aria-label="Open contacts"
-                >
-                  <Menu className="w-5 h-5" />
-                </button>
                 <div className="flex-1">
                   <textarea
                     value={message}
@@ -383,6 +390,15 @@ export default function ChatLayout() {
             </div>
           </div>
         )}
+
+        {/* Mobile FAB for contacts (always visible) */}
+        <button
+          className="sm:hidden fixed bottom-24 left-4 z-50 inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 active:scale-95 transition"
+          onClick={() => setIsMobileMenuOpen(true)}
+          aria-label="Open contacts"
+        >
+          <Menu className="w-6 h-6" />
+        </button>
       </div>
     </div>
   )
