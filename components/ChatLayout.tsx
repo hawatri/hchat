@@ -37,21 +37,7 @@ export default function ChatLayout() {
   const [visibleDeleteForId, setVisibleDeleteForId] = useState<string | null>(null)
   const hideDeleteTimerRef = useRef<number | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
-  // Restore last selected chat or pick first contact
-  useEffect(() => {
-    if (selectedId) return
-    if (!Array.isArray(contacts) || contacts.length === 0) return
-    const saved = typeof window !== 'undefined' ? window.localStorage.getItem('lastChatId') : null
-    const candidate = contacts.find(c => c.contactId === saved)?.contactId || contacts[0].contactId
-    setSelectedId(candidate)
-  }, [contacts, selectedId])
-
-  // Persist selection
-  useEffect(() => {
-    if (!selectedId) return
-    if (typeof window === 'undefined') return
-    window.localStorage.setItem('lastChatId', selectedId)
-  }, [selectedId])
+  // Do not auto-open any chat or persist selection
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -214,9 +200,23 @@ export default function ChatLayout() {
             <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
-                    {selectedId.charAt(0).toUpperCase()}
-                  </div>
+                  {(() => {
+                    const sel = contacts?.find(c => c.contactId === selectedId)
+                    if (sel?.avatarUrl) {
+                      return (
+                        <img
+                          src={sel.avatarUrl}
+                          alt={sel.name ?? 'Avatar'}
+                          className="w-10 h-10 rounded-full object-cover border border-gray-200"
+                        />
+                      )
+                    }
+                    return (
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
+                        {selectedId.charAt(0).toUpperCase()}
+                      </div>
+                    )
+                  })()}
                   <div>
                     <h3 className="font-semibold text-gray-900">{contacts?.find(c => c.contactId === selectedId)?.name ?? selectedId}</h3>
                     <p className="text-sm text-green-500">Online</p>
