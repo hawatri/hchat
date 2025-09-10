@@ -7,10 +7,12 @@ export const upsertCurrentUser = mutation({
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) throw new Error('Not authenticated')
     const clerkUserId = identity.subject
-    const derivedName = identity.name ?? identity.givenName ?? identity.familyName ?? 'Anonymous'
-    const name = args.name ?? derivedName
-    const username = args.username
     const email = identity.email
+    const emailLocalPart = email ? email.split('@')[0] : undefined
+    const derivedName = args.name ?? identity.name ?? identity.givenName ?? identity.familyName ?? emailLocalPart ?? 'Anonymous'
+    const name = derivedName
+    const username = args.username ?? emailLocalPart
+    // email already computed above
 
     const existing = await ctx.db
       .query('users')

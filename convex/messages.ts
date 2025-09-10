@@ -65,3 +65,44 @@ export const getMessages = query({
     return all
   },
 })
+
+export const getMessagesWithProfiles = query({
+  args: { otherUserId: v.string() },
+  handler: async (ctx, { otherUserId }) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error('Not authenticated')
+    const me = identity.subject
+
+    const msgs = await ctx.db
+      .query('messages')
+      .filter(q =>
+        q.or(
+          q.and(q.eq(q.field('senderId'), me), q.eq(q.field('receiverId'), otherUserId)),
+          q.and(q.eq(q.field('senderId'), otherUserId), q.eq(q.field('receiverId'), me))
+        )
+      )
+      .collect()
+
+    // Fetch both user profiles
+    const meProfile = await ctx.db
+      .query('users')
+      .filter(q => q.eq(q.field('clerkUserId'), me))
+      .first()
+    const otherProfile = await ctx.db
+      .query('users')
+      .filter(q => q.eq(q.field('clerkUserId'), otherUserId))
+      .first()
+
+    const senderNameFor = (id: string) => {
+      if (id === me) return meProfile?.username ?? meProfile?.name ?? id
+      return otherProfile?.username ?? otherProfile?.name ?? id
+    }
+
+    msgs.sort((a, b) => a.timestamp - b.timestamp)
+    return msgs.map(m => ({
+      ...m,
+      senderName: senderNameFor(m.senderId),
+      receiverName: senderNameFor(m.receiverId),
+    }))
+  },
+})

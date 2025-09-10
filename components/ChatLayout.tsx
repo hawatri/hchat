@@ -25,7 +25,7 @@ export default function ChatLayout() {
 
   const contacts = useQuery(api.contacts.listContactsWithProfiles, {})
   const messages = useQuery(
-    api.messages.getMessages,
+    api.messages.getMessagesWithProfiles,
     selectedId ? { otherUserId: selectedId } : 'skip'
   )
 
@@ -229,6 +229,7 @@ export default function ChatLayout() {
                           ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-br-md' 
                           : 'bg-white text-gray-900 rounded-bl-md border border-gray-200'
                       }`}>
+                        <p className="text-[10px] mb-1 opacity-80">{isMe ? 'You' : (m.senderName ?? '')}</p>
                         <p className="text-sm leading-relaxed">{m.content}</p>
                       </div>
                     </div>
