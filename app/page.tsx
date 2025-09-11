@@ -23,7 +23,7 @@ export default function Home() {
             </div>
             <div className="space-y-4">
               <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Welcome to hchat
+                Welcome to paprichat
               </h1>
               <p className="text-gray-600 text-lg leading-relaxed">
                 Connect with friends and colleagues in a beautiful, modern chat experience
@@ -47,7 +47,7 @@ export default function Home() {
                 <MessageCircle className="w-5 h-5 text-white" />
               </div>
               <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                hchat
+                paprichat
               </h1>
             </div>
             <UserButton 

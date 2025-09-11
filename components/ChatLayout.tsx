@@ -172,8 +172,8 @@ export default function ChatLayout() {
                       {c.name ?? c.contactId}
                     </p>
                     <p className="text-xs text-gray-500 truncate">{c.email ?? 'Online'}</p>
-                  </div>
-                </div>
+              </div>
+            </div>
               </button>
             ))}
             {!contacts && (
@@ -196,7 +196,7 @@ export default function ChatLayout() {
       <div className="flex-1 flex flex-col relative">
         {selectedId ? (
           <>
-            {/* Chat Header */}
+        {/* Chat Header */}
             <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -271,9 +271,9 @@ export default function ChatLayout() {
                   )}
                 </div>
               </div>
-            </div>
+        </div>
 
-            {/* Messages Area */}
+        {/* Messages Area */}
             <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gray-50 pb-28 sm:pb-0">
               {Array.isArray(messages) && messages.map((m, index) => {
                 const isMe = m.senderId !== selectedId
@@ -337,9 +337,9 @@ export default function ChatLayout() {
                 </div>
               )}
               <div ref={messagesEndRef} />
-            </div>
+        </div>
 
-            {/* Message Input */}
+        {/* Message Input */}
             <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 p-3 sm:relative sm:p-6 sm:z-auto">
               <div className="mx-auto max-w-3xl flex items-end gap-2">
                 <div className="flex-1">
@@ -358,7 +358,7 @@ export default function ChatLayout() {
                         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
                       }, 50)
                     }}
-                    placeholder="Type a message..."
+              placeholder="Type a message..."
                     rows={1}
                     className="w-full px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
                     style={{ minHeight: '44px', maxHeight: '120px' }}
@@ -370,9 +370,9 @@ export default function ChatLayout() {
                   className="p-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:transform-none disabled:shadow-none"
                 >
                   <Send className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+            </button>
+          </div>
+        </div>
           </>
         ) : (
           /* Empty State */
